@@ -5,6 +5,8 @@ from scipy.stats import itemfreq
 
 import seaborn as sns
 import matplotlib.pyplot as plt
+from matplotlib import style
+import numpy as np
 
 from sklearn import preprocessing 
 from sklearn.model_selection import cross_val_score
@@ -30,7 +32,6 @@ def print_evaluation(true_label, prediction, clf_type):
     elif(clf_type == "SVR"): 
         metrics = mean_squared_error(true_label, prediction)
         print(metrics)
-    
     
 def index_preprocess(df):
     # Convert timestamp to datetime
@@ -81,4 +82,42 @@ def print_ts_vs_prediction(real_price, predicted_price):
     plt.plot(predicted_price.get_values())
     plt.legend(['Price', 'Prediction'])
     plt.title('Time series', fontsize=15)
+    plt.show()
+    
+def corr_heatmap(data, save=False):
+    # https://pythonprogramming.net/stock-price-correlation-table-python-programming-for-finance/
+    
+    style.use('ggplot')
+    
+    df = pd.read_csv(data)
+    df_corr = df.corr()
+    if(save):
+        name = data[:-4]
+        name = name+'_corr.csv'
+        df_corr.to_csv(name)
+    
+    data1 = df_corr.values
+    
+    fig1 = plt.figure()
+    ax1 = fig1.add_subplot(1,1,1)
+    
+    heatmap1 = ax1.pcolor(data1, cmap=plt.cm.RdYlGn)
+    
+    fig1.colorbar(heatmap1)
+    
+    ax1.set_xticks(np.arange(data1.shape[1]) + 0.5, minor=False)
+    ax1.set_yticks(np.arange(data1.shape[0]) + 0.5, minor=False)
+    
+    ax1.invert_yaxis()
+    ax1.xaxis.tick_top()
+    
+    column_labels = df_corr.columns
+    row_labels = df_corr.index
+    ax1.set_xticklabels(column_labels)
+    ax1.set_yticklabels(row_labels)
+    
+    plt.xticks(rotation=90)
+    heatmap1.set_clim(-1,1)
+    plt.tight_layout()
+    #plt.savefig("correlations.png", dpi = (300))
     plt.show()
