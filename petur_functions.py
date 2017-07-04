@@ -121,3 +121,56 @@ def corr_heatmap(data, save=False):
     plt.tight_layout()
     #plt.savefig("correlations.png", dpi = (300))
     plt.show()
+    
+def get_tickers():
+    tickers = ['EIK','EIM','GRND','HAGA','ICEAIR','MARL',
+               'N1','NYHR','OSSRu','REGINN','REITIR','SIMINN',
+               'SJOVA','SKEL','TM','VIS','VOICE']
+    return tickers
+
+# In[]
+def create_labels(ticker, df, days=7, change=0.02):
+    """
+    Each model on a per company basis
+    Input:
+    - Ticker to predict
+    - Entire dataframe
+    - Days in the future to predict (default 7)
+   """
+    
+   # list of ticker names
+    tickers = df.columns.values.tolist() 
+
+    # percentage change days in the future
+    df['Target_Change'] = (df[ticker].shift(-days) - df[ticker]) / df[ticker]
+    df.fillna(0, inplace=True)
+            
+    def f(x):
+        if x['Target_Change'] < change *-1:
+            return -1
+        elif x['Target_Change'] > change:
+            return 1
+        else:
+            return 0
+    df['Target'] = df.apply (lambda row: f(row),axis=1)
+    
+    del df['Target_Change']
+    
+    
+    """
+    df.ix[df['Target_Change'] > change, 'Target'] == 1
+    df.ix[df['Target_Change'] < neg_change, 'Target'] == -1
+    df.ix[neg_change < df['Target_Change'] < change, 'Target'] == 0
+    """
+    
+    """
+    for i in range(1,days+1):
+        #% change values for the next 7 days
+        df['{}_{}d'.format(ticker,i)] = (df[ticker].shift(-i) - df[ticker]) / df[ticker]
+    """
+        
+    
+    return tickers, df
+
+#df = pd.read_csv('df_clean.csv', index_col=False, header=0)
+#x,df = create_labels('OMXIPI', df, days=7, change=0.02)

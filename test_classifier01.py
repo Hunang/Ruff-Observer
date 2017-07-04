@@ -1,4 +1,3 @@
-
 # coding: utf-8
 
 # In[1]:
@@ -11,7 +10,6 @@ import time
 import seaborn as sns
 import matplotlib.pyplot as plt
 import matplotlib as mpl
-
 
 # In[5]:
 

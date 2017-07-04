@@ -11,21 +11,26 @@ import csv
 #==============================================================================
 # Load StockMarket Data (Kaupholl)
 #==============================================================================
-def load_market_Data():
+def get_market_Data():
     
-    print("*** Loading Stock Market Data ***")
-    path = 'Dataset_code/Kaupholl' # use your path
+    print("*****\nLoading Stock Market Data")
+    file = 'Kaupholl'
+    path = 'Dataset_code/'+file # use your path
+    
     allFiles = glob.glob(path + "/*.csv")
-    
+
     df_final = pd.DataFrame()
     
     for file_ in allFiles:
+        filename = os.path.basename(file_)[:-4]
         df = pd.read_csv(file_, index_col=False, header=0)
+        print("Adding: ", filename)
+
+# Remove time from datetime and create new date column
         df.DateTime = pd.to_datetime(df.DateTime, infer_datetime_format=True)
-        df['Date'] = df['DateTime']
+        df['Date'] = pd.DatetimeIndex(df.DateTime).normalize()
         del df['DateTime']
         df.set_index('Date', inplace = True)
-        filename = os.path.basename(file_)[:-4]
         df.columns = [filename +'_Price', filename+'_Volume']
         
         # Add to final DF
@@ -35,17 +40,18 @@ def load_market_Data():
         else:
             #print("Joining to DF")
             df_final = df_final.join(df, how='outer')
-        print(filename + ' added sucessfully')
     
     # Sort index and output file
     df = df_final.sort_index()
     df_final.to_csv(path+'_combined.csv', encoding='utf-8')
-    print("******"+path+"\nFile saved sucessfully\n\n")
+    print("******")
+    print(file+"_combined.csv saved successfully")
+
     return df_final
 
-#df_test = load_market_Data()
+#df_test = get_market_Data()
 
-
+    
 # In[]
 #==============================================================================
 # Load Index Data
@@ -54,18 +60,20 @@ def load_market_Data():
 Date	         Price	      Open	      High	    Low	      Volume	  Change%
 Jun 19, 2017	   12,849.50   12,845.25   12,893.50	 12,833.75	-	     0.76%
 """
-def load_INDEX_Data():
+def get_INDEX_Data():
     print("*** Loading Index Data ***")
-    path = 'Dataset_code/INDEX' # use your path
+    file = 'INDEX'
+    path = 'Dataset_code/'+file # use your path
     allFiles = glob.glob(path + "/*.xlsx")
     
     df_final = pd.DataFrame()
     
     for file_ in allFiles:
         # Read from file
-        #print("\n",file_)
         df = pd.read_excel(file_, index_col=False, header=0)
         filename = os.path.basename(file_)[:-5]
+        
+        print("Adding: ", filename)
         
         # Date to datetime and set as index
         df.Date =pd.to_datetime(df['Date'], format = '%b %d, %Y')
@@ -85,15 +93,15 @@ def load_INDEX_Data():
         else:
             #print("Joining to DF")
             df_final = df_final.join(df, how='outer')
-        print(filename + ' added sucessfully')
     
     # Sort index and output file
     df_final.sort_index()
     df_final.to_csv(path+'_combined.csv', encoding='utf-8')
-    print("******"+path+"\nFile saved sucessfully\n\n")
+    print("******")
+    print(file+"_combined.csv saved successfully")
     return df_final
 
-#df_test = load_INDEX_Data()
+#df_test = get_INDEX_Data()
 
 # In[]
 #==============================================================================
@@ -103,9 +111,10 @@ def load_INDEX_Data():
 Date	Price	Open	High	Low	Change%
 Jun 19, 2017	76.75	76.85	77.03	76.59	-0.11%
 """
-def load_FX_Data():
+def get_FX_Data():
     print("*** Loading FX Data ***")
-    path = 'Dataset_code/FX' # use your path
+    file = 'FX'
+    path = 'Dataset_code/'+file # use your path
     allFiles = glob.glob(path + "/*.xlsx")
     
     df_final = pd.DataFrame()
@@ -115,6 +124,7 @@ def load_FX_Data():
         #print("\n",file_)
         df = pd.read_excel(file_, index_col=False, header=0)
         filename = os.path.basename(file_)[:-5]
+        print("Adding: ", filename)
         
         # Date to datetime and set as index
         df.Date = pd.to_datetime(df['Date'], format = '%b %d, %Y')
@@ -134,15 +144,15 @@ def load_FX_Data():
         else:
             #print("Joining to DF")
             df_final = df_final.join(df, how='outer')
-        print(filename + ' added sucessfully')
     
     # Sort index and output file
     df_final.sort_index()
     df_final.to_csv(path+'_combined.csv', encoding='utf-8')
-    print("******"+path+"\nFile saved sucessfully\n\n")
+    print("******")
+    print(file+"_combined.csv saved successfully")
     return df_final
 
-#df_test = load_FX_Data()
+#df_test = get_FX_Data()
 #load_FX_Data()
 
 # In[]
@@ -184,9 +194,9 @@ def join_ALL_Data():
 
 def load_all_data():
     print("\n\nLoading up datasets... \n")
-    load_market_Data()
-    load_FX_Data()
-    load_INDEX_Data()
+    get_market_Data()
+    get_FX_Data()
+    get_INDEX_Data()
     print("All datasets loaded up sucessfully...")
     print("Joining all datasets...")
     join_ALL_Data()
@@ -197,7 +207,8 @@ def load_all_data():
     
 # In[]
 
-def get_cleaned_data(file_, output_filename, date_start_, date_end_):
+def get_cleaned_data(file_, output_filename="df_clean.csv", 
+                     date_start_="01/01/2010", date_end_= "01/01/2017"):
     #Load data
     df = pd.read_csv(file_, index_col=False,header=0)
     df.Date = pd.to_datetime(df.Date, infer_datetime_format=True)
@@ -211,9 +222,42 @@ def get_cleaned_data(file_, output_filename, date_start_, date_end_):
     return df
 
 #df = get_cleaned_data("Dataset_code_combined.csv",'clean_data_FULL', "01/01/2010","01/01/2017")
-    
+
 # In[]
 
+def get_cleaned_df(df, output_filename="df_clean.csv", 
+                     date_start_="01/01/2010", date_end_= "01/01/2017"):
+    #Load data
+     
+    df = df.loc[df.index>= date_start_]
+    df = df.loc[df.index< date_end_]
+    #df.set_index('Date', inplace = True)
+    df.sort_index()
+    
+    df.to_csv(output_filename, encoding='utf-8')
+    
+    return df
+
+# In[]
+
+def get_price_df(df):
+    cols = []
+    column_name = df.columns.values
+    for feature in column_name:
+        if feature[-5:] == 'Price':
+            cols.append(feature)
+    df=df[cols]
+    
+    return df
+    
+# In[]
+#==============================================================================
+# Use this if you have some weird excel docs open
+#==============================================================================
+#os.remove('Dataset_code/INDEX\~$DAX.xlsx')
+
+# In[]
+""" no longer needed
 def load_market_price_Data():
     
     print("*** Loading Stock Market Data ***")
@@ -260,15 +304,8 @@ def load_market_price_Data():
     df_final.to_csv(path+'_price.csv', encoding='utf-8')
     print("******\nFile saved sucessfully\n")
     
-    
     return df_final
 
 #load_market_price_Data()
 #df = get_cleaned_data("Dataset_code/Kaupholl_price.csv",'Clean_price',"01/01/2016","01/01/2017")
-    
-    
-# In[]
-#==============================================================================
-# Use this if you have some weird excel docs open
-#==============================================================================
-#os.remove('Dataset_code/INDEX\~$DAX.xlsx')
+"""    

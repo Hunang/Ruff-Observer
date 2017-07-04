@@ -11,13 +11,11 @@ from sklearn import svm, neighbors
 from sklearn.ensemble import VotingClassifier, RandomForestClassifier
 import time
 
-def process_data_for_labels(ticker):
+def process_data_for_labels(ticker, df):
     # Each model on a per company basis
     # Each comapny takes into account each of the other companies
     
     hm_days = 7 # day range, how many days are we looking at in the future
-    
-    df = pd.read_csv('Clean_price.csv', index_col=0)
     
     # list of ticker names
     tickers = df.columns.values.tolist()
