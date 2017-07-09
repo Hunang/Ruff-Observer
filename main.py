@@ -1,49 +1,30 @@
 # -*- coding: utf-8 -*-
 # In[]
 import petur_functions as petur
-import data_manipulation as load
+#import data_manipulation as load
+
 import pandas as pd
 import numpy as np
 import time
 import operator
-#import sentdex_preprocessing as sentdex
+
+import seaborn as sns
+import matplotlib.pyplot as plt
+
 
 # In[]
 #==============================================================================
-# # Load data and join dataframes
+# # Load data 
 #==============================================================================
-time_Start = time.time()
+df_train = pd.read_csv("MAIN_TRAIN.CSV", index_col='Date', header=0)
 
-df_stocks   = load.get_price_df(load.get_market_Data())
-df_stocks_new= df_stocks.dropna(how='all')
+"""
+## NOTE:
+df_test is a held-out test set!!!
+SHOULD NOT BE USED, EXCEPT FOR TESTING AT KEY POINTS IN PROJECT
 
-df_index    = load.get_INDEX_Data()
-df_fx       = load.get_FX_Data()
-
-tickers = petur.get_tickers()
-
-df = df_stocks.join(df_index, how = 'left')
-df = df.join(df_fx, how='left')
-
-df_load = df.copy()
-
-time_End = time.time()
-print("Seconds to run:", time_End-time_Start )
-
-# In[]
-#==============================================================================
-# Clean data
-#==============================================================================
-df = df_load.copy()
-
-df = load.get_price_df(df)                          # Price only
-df = df.fillna(0)                                   # Replace nan with 0
-df = df[df.index.dayofweek < 5]                     # Remove non-working days
-df.rename(columns=lambda x: x[:-6], inplace=True)    # Remove '_Price' from names
-df = load.get_cleaned_df(df)                        # 1jan'10 - 30dec'16
-
-df_clean = df.copy()
-
+#df_test = pd.read_csv("MAIN_TEST.CSV", index_col='Date', header=0)
+"""
 
 # In[]
 #==============================================================================
@@ -62,11 +43,11 @@ from sklearn.model_selection import cross_val_score
 
 time_Start =time.time()
 
-df = df_clean.copy()
+df = df_train.copy()
 
 target = 'OMXIPI'
-tickers, df = petur.create_labels(target, df, days=7, change=0.02, binary=True)
 
+# Define features to use
 features = df.columns.tolist()
 features.remove('Target')
 
@@ -85,8 +66,8 @@ clf = VotingClassifier(classifiers_vote)
 #accuracy = cross_val_score(clf, X, y, cv=10) #,average='binary')
 #f1 = cross_val_score(clf, X, y, cv=10, scoring='f1') #, average='binary')
 
-print("Accuracy:", sum(accuracy)/len(accuracy))
-print("f1:", sum(f1)/len(f1))
+#print("Accuracy:", sum(accuracy)/len(accuracy))
+#print("f1:", sum(f1)/len(f1))
 
 clf.fit(X_train, y_train)
 
