@@ -124,7 +124,7 @@ def corr_heatmap(data, save=False):
 def get_tickers():
     tickers = ['EIK','EIM','GRND','HAGA','ICEAIR','MARL',
                'N1','NYHR','OSSRu','REGINN','REITIR','SIMINN',
-               'SJOVA','SKEL','TM','VIS','VOICE']
+               'SJOVA','TM','VIS','VOICE']
     return tickers
 
 # In[]
