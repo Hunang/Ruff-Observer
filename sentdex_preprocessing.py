@@ -29,7 +29,6 @@ def process_data_for_labels(ticker, df):
     return tickers, df
     
 def buy_sell_hold(*args):
-    
     cols = [c for c in args]
     requirement = 0.02 
     

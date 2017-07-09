@@ -19,17 +19,16 @@ from sklearn.metrics import accuracy_score
 from sklearn.metrics import mean_squared_error
 
 
-def print_evaluation(true_label, prediction, clf_type):
+def print_evaluation(true_label, prediction, clf_type="Classification"):
     
     if(clf_type == "Classification"):
-        accuracy = accuracy_score(true_label, prediction)
-        metrics = precision_recall_fscore_support(true_label, prediction, average='binary')
+        metrics = precision_recall_fscore_support(true_label, prediction)#, average='binary')
     
-        print("Accuracy:  ", accuracy)
+        print("Accuracy:  ", accuracy_score(true_label, prediction))
         print("Precision: ", metrics[0])
         print("Recall:    ", metrics[1])
         print("F1-score:  ", metrics[2])
-    elif(clf_type == "SVR"): 
+    elif(clf_type == "Regression"): 
         metrics = mean_squared_error(true_label, prediction)
         print(metrics)
     
@@ -129,7 +128,7 @@ def get_tickers():
     return tickers
 
 # In[]
-def create_labels(ticker, df, days=7, change=0.02):
+def create_labels(ticker, df, days=7, change=0.02, binary=False):
     """
     Each model on a per company basis
     Input:
@@ -142,6 +141,7 @@ def create_labels(ticker, df, days=7, change=0.02):
     tickers = df.columns.values.tolist() 
 
     # percentage change days in the future
+    df['Target_day_price'] = df[ticker].shift(-days)
     df['Target_Change'] = (df[ticker].shift(-days) - df[ticker]) / df[ticker]
     df.fillna(0, inplace=True)
             
@@ -152,24 +152,22 @@ def create_labels(ticker, df, days=7, change=0.02):
             return 1
         else:
             return 0
-    df['Target'] = df.apply (lambda row: f(row),axis=1)
+    def b(x):
+        if x['Target_Change'] < change *-1:
+            return 1
+        elif x['Target_Change'] > change:
+            return 1
+        else:
+            return 0
+
+    if(binary):
+        df['Target'] = df.apply (lambda row: b(row),axis=1)
+    else:
+        df['Target'] = df.apply (lambda row: f(row),axis=1)
     
     del df['Target_Change']
-    
-    
-    """
-    df.ix[df['Target_Change'] > change, 'Target'] == 1
-    df.ix[df['Target_Change'] < neg_change, 'Target'] == -1
-    df.ix[neg_change < df['Target_Change'] < change, 'Target'] == 0
-    """
-    
-    """
-    for i in range(1,days+1):
-        #% change values for the next 7 days
-        df['{}_{}d'.format(ticker,i)] = (df[ticker].shift(-i) - df[ticker]) / df[ticker]
-    """
-        
-    
+    del df['Target_day_price']
+      
     return tickers, df
 
 #df = pd.read_csv('df_clean.csv', index_col=False, header=0)
