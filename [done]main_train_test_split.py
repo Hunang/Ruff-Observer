@@ -46,7 +46,7 @@ df = load.get_price_df(df)                          # Price only
 df = df.fillna(0)                                   # Replace nan with 0
 df = df[df.index.dayofweek < 5]                     # Remove non-working days
 df.rename(columns=lambda x: x[:-6], inplace=True)    # Remove '_Price' from names
-df = load.get_cleaned_df(df)                        # 1jan'10 - 30dec'16
+df = load.get_cleaned_df(df, date_end_= "06/01/2017")  # 1jan'10 - 1june'17
 
 # In[]
 # Replace 0 values in non-ticker columns with the value that came before it
@@ -84,4 +84,22 @@ test.sort_index(inplace = True)
 train.to_csv("MAIN_TRAIN.csv")
 test.to_csv("MAIN_TEST.csv")
 
+
+
+
+# In[]
+df = pd.read_csv("MAIN_FULL.csv", index_col=False,header=0)
+df.Date = pd.to_datetime(df.Date, infer_datetime_format=True)
+
+df_train = df[df['Date']< "06/01/2016"]
+df_test  = df[df['Date']>= "06/01/2016"]
+
+df_train.set_index('Date', inplace = True)
+df_test.set_index('Date', inplace = True)
+
+df_train.sort_index()
+df_test.sort_index()
+
+df_train.to_csv("MAIN_TRAIN_2.csv")
+df_test.to_csv("MAIN_TEST_2.csv")
 """

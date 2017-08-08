@@ -7,22 +7,23 @@ import seaborn as sns
 import matplotlib.pyplot as plt
 from matplotlib import style
 import numpy as np
+from collections import Counter
 
 from sklearn import preprocessing 
 from sklearn.model_selection import cross_val_score
 from sklearn.model_selection import train_test_split
 from sklearn.svm import SVR
-
 import sklearn.metrics
 from sklearn.metrics import precision_recall_fscore_support
 from sklearn.metrics import accuracy_score
 from sklearn.metrics import mean_squared_error
+from sklearn.model_selection import TimeSeriesSplit
 
 
 def print_evaluation(true_label, prediction, clf_type="Classification"):
     
     if(clf_type == "Classification"):
-        metrics = precision_recall_fscore_support(true_label, prediction)#, average='binary')
+        metrics = precision_recall_fscore_support(true_label, prediction, average='binary')
     
         print("Accuracy:  ", accuracy_score(true_label, prediction))
         print("Precision: ", metrics[0])
@@ -170,5 +171,97 @@ def create_labels(ticker, df, days=7, change=0.02, binary=False):
       
     return tickers, df
 
+def create_better_labels(stock, df, days):
+    """
+    Each model on a per company basis
+    Input:
+    - Ticker to predict
+    - Entire dataframe
+    - Days in the future to predict (default 7)
+   """
+   # list of ticker names
+    stocks = df.columns.values.tolist()
+    stocks.remove(stock)
+
+    # percentage change days in the future
+    df['Target_day_price'] = df[stock].shift(-days)
+    df['Target_Change'] = (df[stock].shift(-days) - df[stock]) / df[stock]
+    df = df.dropna()
+            
+    def f(x):
+        if x['Target_Change'] > 0:
+            return 1
+        else:
+            return 0
+
+    df['Target'] = df.apply (lambda row: f(row),axis=1)
+    
+#    del df['Target_Change']
+#    del df['Target_day_price']
+    del df[stock]
+    
+    x = df[stocks]
+    y = df['Target']
+      
+    return x, y
+    
+
 #df = pd.read_csv('df_clean.csv', index_col=False, header=0)
 #x,df = create_labels('OMXIPI', df, days=7, change=0.02)
+
+# In[]
+#==============================================================================
+# Timeseries CV
+#==============================================================================
+def timeseries_cv(X, y, clf, splits=10, verbosity=True):
+    # Init scores arrays
+    accuracy    = []
+    precision   = []
+    recall      = []
+    f1_score    = []
+    
+    # Make splits and loop over them
+    tscv = TimeSeriesSplit(n_splits=splits)
+    for train_index, test_index in tscv.split(X):
+        clf_loop = clf
+        # Define start and stop indexes for timeseries crossvalidation
+        train_start = train_index.min()
+        train_stop = train_index.max()
+        test_start = train_stop+1
+        test_stop = test_index.max()
+        
+        # Split data based on start and stop
+        X_train, X_test = X[train_start:train_stop], X[test_start:test_stop]
+        y_train, y_test = y[train_start:train_stop], y[test_start:test_stop]
+        
+        # Make prediction
+        clf_loop.fit(X_train, y_train)
+        predictions = clf_loop.predict(X_test)
+        
+        # Append results to arrays
+        metrics = precision_recall_fscore_support(y_test, predictions)#, average='binary')
+        accuracy.append(accuracy_score(y_test, predictions))
+        precision.append(np.mean(metrics[0]))
+        recall.append(np.mean(metrics[1]))
+        f1_score.append(np.mean(metrics[2]))
+        
+        # Results
+        if verbosity:
+            print("Training: %s - %s" %(train_start,train_stop))
+            print("Testing: %s - %s" %(test_start,test_stop))
+            print_evaluation(y_test, predictions)
+            print('True spread:     ', Counter(y_test))
+            print('Predicted spread:', Counter(predictions))
+            print("******************************************\n")
+    
+    # Print summary stats
+    print("\n******************************************")
+    print("******************************************")
+    print("Final outcome from CV of %s folds" %splits)
+    print("Accuracy:  ", np.mean(accuracy))
+    print("Precision: ", np.mean(precision))
+    print("Recall:    ", np.mean(recall))
+    print("F1-score:  ", np.mean(f1_score))
+
+    # Return 
+    return accuracy, precision, recall, f1_score

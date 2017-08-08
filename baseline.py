@@ -7,29 +7,96 @@
 import petur_functions as petur
 
 # Base libraries
-import numpy as np
 import pandas as pd
-import time
-
-# Functions
-from collections import Counter
 
 # Machine learning libraries
+from sklearn import svm
+from sklearn import neighbors
+from sklearn.ensemble import VotingClassifier, RandomForestClassifier
 from sklearn.svm import SVC
-from sklearn.model_selection import cross_val_score
-from sklearn.model_selection import TimeSeriesSplit
-from sklearn import cross_validation as cv
 
-# In[]
+# In[Load data]
 #==============================================================================
 # Load data
 #==============================================================================
 df_train = pd.read_csv("MAIN_TRAIN.CSV", index_col='Date', header=0)
+df_test = pd.read_csv("MAIN_TEST.CSV", index_col='Date', header=0)
 
+# In[Timeseries cv]
+#==============================================================================
+# Timeseries cv
+#==============================================================================
+# Load data and define features
 df = df_train.copy()
+features = petur.get_tickers()
+features.append('OMXIPI')
+
+# Train test split 
+y = df.Target
+X = df[features]
+
+# CLF 
+clf = SVC()
+
+# CV
+ac,pr,re,f1 = petur.timeseries_cv(X,y,clf, splits=5)#, verbosity=False)
+
+"""
+Final baseline outcome on 09/July/2016
+- CV of 10 folds 
+- SVC(kernel='rbf') and 
+- Ticker price of all companies to 
+- Predict index price changes by 2% 7 days in the future
+
+Accuracy:   0.6728
+Precision:  0.381768929984
+Recall:     0.495955797689
+F1-score:   0.412887585056
+"""
+# In[Timeseries test set]
+#==============================================================================
+# Timeseries test set
+#==============================================================================
+train_data = df_train.copy()
+test_data = df_test.copy()
+
+features = petur.get_tickers()
+features.append('OMXIPI')
+
+# Train test split 
+y_train = train_data.Target
+X_train = train_data[features]
+
+y_test = test_data.Target
+X_test = test_data[features]
+
+# CLF 
+clf = svm.LinearSVC()
+clf = SVC()
+
+clf.fit(X_train, y_train)
+
+prediction = clf.predict(X_test)
+
+petur.print_evaluation(y_test, prediction)
+
+df_predict = pd.DataFrame({'Predictions': prediction, 'True_label': y_test})
+"""
+Final baseline outcome on 09/July/2016
+- CV of 10 folds 
+- SVC(kernel='rbf') and 
+- Ticker price of all companies to 
+- Predict index price changes by 2% 7 days in the future
+
+Accuracy:   0.773638968481
+Precision:  0.696428571429
+Recall:     0.386138613861
+F1-score:   0.496815286624
+"""
+
 
 # In[]
-"""
+""" OLDER code
 #==============================================================================
 # Machine learning linear baseline
 #==============================================================================
@@ -69,8 +136,9 @@ f1 = cross_val_score(clf, X, y, cv=10, scoring='f1') #, average='binary')
 
 print("Accuracy:", sum(accuracy)/len(accuracy))
 print("f1:", sum(f1)/len(f1))
-"""
+
 # In[]
+
 time_Start =time.time()
 #==============================================================================
 # Machine learning RBF baseline, reduced features
@@ -114,47 +182,5 @@ df_predict = pd.DataFrame({'Predictions': predictions, 'True_label': y_test})
 time_End = time.time()
 print("Seconds to run:", time_End-time_Start)
 
-# In[]
-#==============================================================================
-# Timeseries Split
-#==============================================================================
-df = df_train.copy()
-
-features = petur.get_tickers()
-features.append('OMXIPI')
-
-y = df.Target
-X = df[features]
-
-clf = SVC(kernel = 'linear')
-
-accuracy    = []
-precision   = []
-recall      = []
-f1_score    = []
-
-tscv = TimeSeriesSplit(n_splits=10)
-for train_index, test_index in tscv.split(X):
-    print("\n******************************************")
-    # Define start and stop indexes for timeseries crossvalidation
-    train_start = train_index.min()
-    train_stop = train_index.max()
-    test_start = train_stop+1
-    test_stop = test_index.max()
-    
-    # Split data based on start and stop
-    X_train, X_test = X[train_start:train_stop], X[test_start:test_stop]
-    y_train, y_test = y[train_start:train_stop], y[test_start:test_stop]
-    
-    # Make prediction
-    clf.fit(X_train, y_train)
-    predictions = clf.predict(X_test)
-    
-    # Results
-    petur.print_evaluation(y_test, predictions)
-    print('True spread:     ', Counter(y_test))
-    print('Predicted spread:', Counter(predictions))
    
-
-    
-    
+"""

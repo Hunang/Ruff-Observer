@@ -208,7 +208,7 @@ def load_all_data():
 # In[]
 
 def get_cleaned_data(file_, output_filename="df_clean.csv", 
-                     date_start_="01/01/2010", date_end_= "01/01/2017"):
+                     date_start_="01/01/2010", date_end_= "01/01/2017", save=False):
     #Load data
     df = pd.read_csv(file_, index_col=False,header=0)
     df.Date = pd.to_datetime(df.Date, infer_datetime_format=True)
@@ -217,7 +217,8 @@ def get_cleaned_data(file_, output_filename="df_clean.csv",
     df.set_index('Date', inplace = True)
     df.sort_index()
     
-    df.to_csv(output_filename+'.csv', encoding='utf-8')
+    if save:
+        df.to_csv(output_filename+'.csv', encoding='utf-8')
     
     return df
 
