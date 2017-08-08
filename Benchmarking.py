@@ -98,14 +98,17 @@ scores.to_csv("Benchmark_Scores.csv")
 
 # In[TPOT generation]
 
-days = [1, 3, 5, 10, 20]
+days = [1, 2]#, 3, 5, 10, 20]
 features_all = tickers
 stocks = tickers
-#stocks = ['OMXIPI']
+stocks = ['OMXIPI', 'SIMINN']
+
 scores = {}
+models = {}
 
 for stock in stocks:
     acc = []
+    mdl = []
     for day in days:
         name = "%s-%s" %(stock, day)
         
@@ -118,22 +121,49 @@ for stock in stocks:
         
         # Define classifier and train
         print("Starting TPOT for",name)
-        tpot = TPOTClassifier(generations=2, population_size=2, 
+        tpot = TPOTClassifier(generations=1, population_size=1, 
                               verbosity=2, 
-                              n_jobs = -1, cv=3, max_time_mins = 20)
+                              n_jobs = -1, cv=2)#, max_time_mins = 20)
         tpot.fit(x_train, y_train)
         
+        # Test Accuracy
         accuracy = tpot.score(x_test, y_test)
+        print()
         print("Final score:",accuracy)
         acc.append(accuracy)
+        
+        pln_name = str(tpot._optimized_pipeline)
+        to_find = '('
+        index_value = pln_name.find(to_find) 
+        pln_name = pln_name[0:index_value]
+        
+        mdl.append(pln_name)
+
+        del tpot #reset classifier
     scores[stock] = acc
+    models[stock] = mdl
+    
+# Reformat scores and models 
 scores = pd.DataFrame(scores)
 scores = scores.transpose()
 scores.columns = days
-scores.to_csv("Benchmark_Scores.csv")
+models = pd.DataFrame(models)
+models = models.transpose()
+models.columns = days
 
+# Export scores and models to Excel
+writer = pd.ExcelWriter('pandas_multiple.xlsx', engine='xlsxwriter')
+scores.to_excel(writer, sheet_name='Scores')
+models.to_excel(writer, sheet_name='Models')
+writer.save()
+
+#scores.to_csv("Benchmark_Scores_TPOT.csv")
+
+"""
 for stock in stocks:
     for day in days:
         name = "TPOT/"+name+"-"+datetime.now().strftime('%m-%d_%H-%M')
         tpot.export(name)
         print("Exported to", name)
+        
+"""
