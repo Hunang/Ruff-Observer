@@ -181,29 +181,21 @@ def create_better_labels(stock, df, days):
    """
    # list of ticker names
     stocks = df.columns.values.tolist()
-    stocks.remove(stock)
 
     # percentage change days in the future
     df['Target_day_price'] = df[stock].shift(-days)
     df['Target_Change'] = (df[stock].shift(-days) - df[stock]) / df[stock]
     df = df.dropna()
-            
-    def f(x):
-        if x['Target_Change'] > 0:
-            return 1
-        else:
-            return 0
 
-    df['Target'] = df.apply (lambda row: f(row),axis=1)
-    
-#    del df['Target_Change']
-#    del df['Target_day_price']
-    del df[stock]
+#    df['Target'] = df['Target_Change'].apply(lambda row: f(row))
+    stuff = df['Target_Change'].apply(lambda x: 1 if x>0 else 0)
+#    stuff = stuff.copy()
+#    df.loc[:,'Target'] = stuff
     
     x = df[stocks]
-    y = df['Target']
+    y = stuff
       
-    return x, y
+    return x, y, stuff
     
 
 #df = pd.read_csv('df_clean.csv', index_col=False, header=0)
@@ -265,3 +257,47 @@ def timeseries_cv(X, y, clf, splits=10, verbosity=True):
 
     # Return 
     return accuracy, precision, recall, f1_score
+
+# In[Moving Averages]
+def make_sma(passed_df, feature_list, day_list, clean = False ):
+    
+    for feature in feature_list:
+        for day in day_list:
+            feature_name = "%s_%iSMA" %(feature, day)
+            passed_df[feature_name] = passed_df[feature].rolling(center=False,window =day).mean()
+    if(clean):
+        return passed_df.dropna()
+    else: 
+        return passed_df
+
+def make_ewma(passed_df, feature_list, day_list, clean = False):
+    for feature in feature_list:
+        for day in day_list:
+            feature_name = "%s_%iEWMA" %(feature, day)
+            passed_df[feature_name] = passed_df[feature].ewm(com=0.5,min_periods=0,adjust=True,ignore_na=False).mean()
+    if(clean):
+        return passed_df.dropna()
+    else: 
+        return passed_df
+    
+# In[Train/Test split of df]
+    
+def tr_ts_split(df, date="01/01/2017"):
+    #def new dfs
+    df_train = df.copy()
+    df_test = df.copy()
+    
+    #Filter training
+    df_train['Date']=df_train.index
+    df_train.Date = pd.to_datetime(df_train.Date, infer_datetime_format=True)
+    df_train =df_train[df_train['Date'] < date]
+    del df_train['Date']
+    
+    
+    #Filter test
+    df_test['Date']=df_test.index
+    df_test.Date = pd.to_datetime(df_test.Date, infer_datetime_format=True)
+    df_test =df_test[df_test['Date'] >= date]
+    del df_test['Date']    
+    
+    return df_train, df_test   

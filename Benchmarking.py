@@ -39,7 +39,8 @@ from sklearn.linear_model import LogisticRegression
 #==============================================================================
 # # Load data 
 #==============================================================================
-df_train = pd.read_csv("MAIN_TRAIN_2.CSV", index_col='Date', header=0)
+#df_train = pd.read_csv("Working_Dataset/MAIN_TRAIN_2.CSV", index_col='Date', header=0)
+#df_train = pd.read_csv("Working_Dataset/Benchmark_train.csv", index_col='Date', header=0)
 
 #==============================================================================
 # ## NOTE:
@@ -48,23 +49,18 @@ df_train = pd.read_csv("MAIN_TRAIN_2.CSV", index_col='Date', header=0)
 # SHOULD NOT BE USED, EXCEPT FOR TESTING AT KEY POINTS IN PROJECT
 #==============================================================================
 #==============================================================================
-df_test = pd.read_csv("MAIN_TEST_2.CSV", index_col='Date', header=0)
+#df_test = pd.read_csv("Working_Dataset/MAIN_TEST_2.CSV", index_col='Date', header=0)
+#df_test = pd.read_csv("Working_Dataset/Benchmark_test.csv", index_col='Date', header=0)
 #==============================================================================
 #==============================================================================
-
 tickers = petur.get_tickers()
 tickers.append('OMXIPI')
-
-# In[]
-"""
-tickers = petur.get_tickers()
-tickers.append('OMXIPI')
-
-df_train[tickers].to_csv("Benchmark_train.csv")
-df_test[tickers].to_csv("Benchmark_test.csv")
-"""
+df = pd.read_csv("Working_Dataset/MAIN_FULL.CSV", index_col='Date', header=0)
+df_train, df_test = petur.tr_ts_split(df)
 
 # In[Benchamark Scores with SVC]
+time_Start =time.time()
+
 days = [1, 3, 5, 10, 20]
 features_all = tickers
 stocks = tickers
@@ -91,79 +87,16 @@ for stock in stocks:
         print(name)
         acc.append(accuracy)
     scores[stock] = acc
-scores = pd.DataFrame(scores)
-scores = scores.transpose()
-scores.columns = days
-scores.to_csv("Benchmark_Scores.csv")
-
-# In[TPOT generation]
-
-days = [1, 2]#, 3, 5, 10, 20]
-features_all = tickers
-stocks = tickers
-stocks = ['OMXIPI', 'SIMINN']
-
-scores = {}
-models = {}
-
-for stock in stocks:
-    acc = []
-    mdl = []
-    for day in days:
-        name = "%s-%s" %(stock, day)
-        
-        training = df_train[features_all].copy()
-        testing = df_test[features_all].copy()
-        
-        # Create Labels
-        x_train, y_train = petur.create_better_labels(stock, training, day)
-        x_test, y_test = petur.create_better_labels(stock, testing, day)
-        
-        # Define classifier and train
-        print("Starting TPOT for",name)
-        tpot = TPOTClassifier(generations=1, population_size=1, 
-                              verbosity=2, 
-                              n_jobs = -1, cv=2)#, max_time_mins = 20)
-        tpot.fit(x_train, y_train)
-        
-        # Test Accuracy
-        accuracy = tpot.score(x_test, y_test)
-        print()
-        print("Final score:",accuracy)
-        acc.append(accuracy)
-        
-        pln_name = str(tpot._optimized_pipeline)
-        to_find = '('
-        index_value = pln_name.find(to_find) 
-        pln_name = pln_name[0:index_value]
-        
-        mdl.append(pln_name)
-
-        del tpot #reset classifier
-    scores[stock] = acc
-    models[stock] = mdl
     
-# Reformat scores and models 
+# Save to dataframe
 scores = pd.DataFrame(scores)
 scores = scores.transpose()
 scores.columns = days
-models = pd.DataFrame(models)
-models = models.transpose()
-models.columns = days
 
-# Export scores and models to Excel
-writer = pd.ExcelWriter('pandas_multiple.xlsx', engine='xlsxwriter')
-scores.to_excel(writer, sheet_name='Scores')
-models.to_excel(writer, sheet_name='Models')
-writer.save()
+# Timing
+time_End = time.time()
+elapsed = time_End-time_Start
 
-#scores.to_csv("Benchmark_Scores_TPOT.csv")
-
-"""
-for stock in stocks:
-    for day in days:
-        name = "TPOT/"+name+"-"+datetime.now().strftime('%m-%d_%H-%M')
-        tpot.export(name)
-        print("Exported to", name)
-        
-"""
+# Save to excel
+excel_name = "Scores/%i_Benchmark_Score (%i sec).csv" %(time_Start, elapsed)
+scores.to_csv(excel_name)
