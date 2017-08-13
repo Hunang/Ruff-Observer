@@ -264,3 +264,59 @@ elapsed = time_End-time_Start
 excel_name = "Scores/%i_SVC_FeatureSelection_Score (%i sec).csv" %(time_Start, elapsed)
 scores.to_csv(excel_name)
 
+#==============================================================================
+# In[Feature Selection]
+#==============================================================================
+time_Start =time.time()
+
+#
+clfs = ExtraTreesClassifier(n_estimators=100, random_state = 0)
+clf = RFECV(estimator=clfs, step=1, cv=5, n_jobs =-1, scoring='accuracy')
+
+feature_dic = {}
+importance_dic = {}
+
+#tickers = ['OMXIPI']
+#days = [1]
+n_featurs = []
+
+for stock in tickers:
+    acc = []
+    for day in days:
+        name = "%s-%s" %(stock, day)
+        print("Starting feature selection for %s" % name)
+        
+        # create labels to predict
+        x_tr = x_train.copy()
+        y_tr = y_train[name]
+        x_tr.append(y_tr)
+        
+        # Define classifiers
+        clfs = AdaBoostClassifier()
+        clf = RFECV(estimator=clfs, step=1, cv=5, n_jobs =-1, scoring='accuracy')
+        clf = clf.fit(x_tr, y_tr)
+        
+        # Add best features to dictionary
+        output = clf.support_
+        features = pd.Series(x_tr.columns.tolist())     #get the full feature names
+        final_features = features[output]
+        feature_dic[name] = final_features
+        importance_dic[name] = clf.feature_importances_
+        
+        # Log time and number of features
+        time_loop_END=time.time()
+        n_featurs.append(clf.n_features_)
+        
+        print("Optimal number of features : %d out of %d" % (clf.n_features_, len(features)))
+        print("Done...%i seconds elapsed\n" % (time_loop_END - time_Start))
+
+# Timing
+time_End = time.time()
+elapsed = time_End-time_Start
+print("Total time to run: %i sec / (%i min)" % (elapsed, (elapsed/60) ))
+
+plt.figure()
+plt.xlabel("Number of features selected")
+plt.title("Number of features chosen with feature selection)")
+plt.hist(n_featurs, bins = 20)
+plt.show()

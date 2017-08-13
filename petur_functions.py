@@ -171,7 +171,7 @@ def create_labels(ticker, df, days=7, change=0.02, binary=False):
       
     return tickers, df
 
-def create_better_labels(stock, df, days):
+def create_better_labels(stock, df, days, drop=True):
     """
     Each model on a per company basis
     Input:
@@ -185,7 +185,9 @@ def create_better_labels(stock, df, days):
     # percentage change days in the future
     df['Target_day_price'] = df[stock].shift(-days)
     df['Target_Change'] = (df[stock].shift(-days) - df[stock]) / df[stock]
-    df = df.dropna()
+    
+    if drop:
+        df = df.dropna()
 
 #    df['Target'] = df['Target_Change'].apply(lambda row: f(row))
     stuff = df['Target_Change'].apply(lambda x: 1 if x>0 else 0)
@@ -195,7 +197,7 @@ def create_better_labels(stock, df, days):
     x = df[stocks]
     y = stuff
       
-    return x, y, stuff
+    return x, y
     
 
 #df = pd.read_csv('df_clean.csv', index_col=False, header=0)
